@@ -236,12 +236,13 @@ bool FinerPerfTimingTest()
 
     cm256_block blocks[256];
 
-    uint64_t tsum = 0;
+    uint64_t tsum_enc = 0;
+    uint64_t tsum_dec = 0;
 
     cm256_encoder_params params;
-    params.BlockBytes = 1296;
-    params.OriginalCount = 100;
-    params.RecoveryCount = 30;
+    params.BlockBytes = 1400;
+    params.OriginalCount = 48;
+    params.RecoveryCount = 96;
 
     unsigned char* orig_data = new unsigned char[256 * params.BlockBytes];
     unsigned char* recoveryData = new unsigned char[256 * params.BlockBytes];
@@ -259,10 +260,14 @@ bool FinerPerfTimingTest()
             blocks[i].Block = orig_data + i * params.BlockBytes;
         }
 
+        const uint64_t t0 = siamese::GetTimeUsec();
         if (cm256_encode(params, blocks, recoveryData))
         {
             return false;
         }
+
+        const uint64_t t1 = siamese::GetTimeUsec();
+        tsum_enc += t1 - t0;
 
         // Initialize the indices
         for (int i = 0; i < params.OriginalCount; ++i)
@@ -278,15 +283,15 @@ bool FinerPerfTimingTest()
         }
         //// Simulate loss of data, substituting a recovery block in its place ////
 
-        const uint64_t t0 = siamese::GetTimeUsec();
+        const uint64_t t2 = siamese::GetTimeUsec();
 
         if (cm256_decode(params, blocks))
         {
             return false;
         }
 
-        const uint64_t t1 = siamese::GetTimeUsec();
-        tsum += t1 - t0;
+        const uint64_t t3 = siamese::GetTimeUsec();
+        tsum_dec += t3 - t2;
 
         for (int i = 0; i < params.RecoveryCount && i < params.OriginalCount; ++i)
         {
@@ -304,10 +309,14 @@ bool FinerPerfTimingTest()
         }
     }
 
-    const double opusec = tsum / static_cast<double>( trials );
-    const double mbps = (params.BlockBytes * params.OriginalCount / opusec);
+    const double opusec_enc = tsum_enc / static_cast<double>(trials);
+    const double mbps_enc = (params.BlockBytes * params.OriginalCount / opusec_enc);
+    const double opusec_dec = tsum_dec / static_cast<double>(trials);
+    const double mbps_dec = (params.BlockBytes * params.OriginalCount / opusec_dec);
 
-    cout << opusec << " usec, " << mbps << " MBps" << endl;
+    cout << "Params: size = " << params.BlockBytes << " k = " << params.OriginalCount << " m = " << params.RecoveryCount << endl;
+    cout << "Encoder: " << opusec_enc << " usec, " << mbps_enc << " MBps" << endl;
+    cout << "Decoder: " << opusec_dec << " usec, " << mbps_dec << " MBps" << endl;
 
 #ifdef _WIN32
     ::SetThreadPriority(::GetCurrentThread(), THREAD_PRIORITY_NORMAL);
@@ -415,13 +424,13 @@ bool BulkPerfTesting()
 
 int main()
 {
-#if 1
+#if 0
     if (!ExampleFileUsage())
     {
         exit(1);
     }
 #endif
-#if 1
+#if 0
     if (!CheckMemSwap())
     {
         exit(4);
@@ -433,7 +442,7 @@ int main()
         exit(2);
     }
 #endif
-#if 1
+#if 0
     if (!BulkPerfTesting())
     {
         exit(3);
