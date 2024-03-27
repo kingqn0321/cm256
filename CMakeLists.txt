@@ -41,8 +41,8 @@ set_target_properties(cm256 PROPERTIES VERSION 2)
 set_target_properties(cm256 PROPERTIES SOVERSION 2)
 target_include_directories(cm256 PUBLIC ${PROJECT_SOURCE_DIR}/include)
 
-add_executable(unit_test ${UNIT_TEST_SOURCE_FILES})
-target_link_libraries(unit_test cm256)
+add_executable(cm256_test ${UNIT_TEST_SOURCE_FILES})
+target_link_libraries(cm256_test cm256)
 
 install(TARGETS cm256
     ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
