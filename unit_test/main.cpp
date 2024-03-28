@@ -44,10 +44,18 @@ using namespace std;
 #ifdef _WIN32
 #define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
+#include "getopt.h"
+#else
+#include <unistd.h>
 #endif
 
 #include <chrono>
 #include <thread>
+
+static int original_count_k_ = 48;
+static int recovery_count_m_ = 96;
+static int block_bytes_l_ = 1400;
+static int trials_n_ = 1000;
 
 void initializeBlocks(cm256_block originals[256], int blockCount, int blockBytes)
 {
@@ -240,16 +248,28 @@ bool FinerPerfTimingTest()
     uint64_t tsum_dec = 0;
 
     cm256_encoder_params params;
-    params.BlockBytes = 1400;
-    params.OriginalCount = 48;
-    params.RecoveryCount = 96;
+    params.BlockBytes = block_bytes_l_;
+    params.OriginalCount = original_count_k_;
+    params.RecoveryCount = recovery_count_m_;
 
     unsigned char* orig_data = new unsigned char[256 * params.BlockBytes];
     unsigned char* recoveryData = new unsigned char[256 * params.BlockBytes];
 
-    const int trials = 1000;
+    const int trials = trials_n_;
+    cout << "Params: block-size = " << params.BlockBytes << " k = " << params.OriginalCount
+         << " m = " << params.RecoveryCount << " trials = " << trials << endl;
+    cout << "FinerPerfTimingTest Start!\n"
+         << endl;
+    int last_print = -1;
     for (int trial = 0; trial < trials; ++trial)
     {
+        int percent = trial * 100 / trials;
+        if (0 == percent % 10 && percent != last_print)
+        {
+            last_print = percent;
+            cout << "......%" << percent
+                 << endl;
+        }
         for (int i = 0; i < params.BlockBytes * params.OriginalCount; ++i)
         {
             orig_data[i] = (uint8_t)i;
@@ -314,7 +334,8 @@ bool FinerPerfTimingTest()
     const double opusec_dec = tsum_dec / static_cast<double>(trials);
     const double mbps_dec = (params.BlockBytes * params.OriginalCount / opusec_dec);
 
-    cout << "Params: size = " << params.BlockBytes << " k = " << params.OriginalCount << " m = " << params.RecoveryCount << endl;
+    cout << "\nFinerPerfTimingTest End!\n"
+         << endl;
     cout << "Encoder: " << opusec_enc << " usec, " << mbps_enc << " MBps" << endl;
     cout << "Decoder: " << opusec_dec << " usec, " << mbps_dec << " MBps" << endl;
 
@@ -421,9 +442,53 @@ bool BulkPerfTesting()
     return true;
 }
 
-
-int main()
+static inline void show_help()
 {
+    fprintf(stdout, "Usage: ./cm256_test [options] trials_cnt \n");
+    fprintf(stdout, "Eg: ./cm256_test -k 48 -m 96 -l 1400 1000 \n");
+    fprintf(stdout, "Print help:\n"
+                    "-h         show help\n"
+                    "\n");
+    fprintf(stdout, "Input specification:\n"
+                    "-k cnt     set original count\n"
+                    "-m cnt     set recovery count\n"
+                    "-l bytes   set block bytes\n"
+                    "\n");
+}
+
+int main(int argc, char **argv)
+{
+    int opt;
+    while ((opt = getopt(argc, argv, "hk:m:l:")) != EOF)
+    {
+        switch (opt)
+        {
+        case 'h':
+            show_help();
+            exit(EXIT_FAILURE);
+        case 'k':
+            original_count_k_ = atoi(optarg);
+            break;
+        case 'm':
+            recovery_count_m_ = atoi(optarg);
+            break;
+        case 'l':
+            block_bytes_l_ = atoi(optarg);
+            break;
+        default: /* '?' */
+            fprintf(stdout, "Use \'-h\' to get more help\n");
+            exit(EXIT_FAILURE);
+        }
+    }
+
+    if (optind >= argc)
+    {
+        fprintf(stdout, "Trials count must be specified %d-%d\n", optind, argc);
+        exit(EXIT_FAILURE);
+    }
+
+    trials_n_ = atoi(argv[optind]);
+
 #if 0
     if (!ExampleFileUsage())
     {

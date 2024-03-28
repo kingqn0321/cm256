@@ -18,11 +18,22 @@ set(LIB_SOURCE_FILES
     include/gf256.h
 )
 
+if(MSVC)
+set(UNIT_TEST_SOURCE_FILES
+    unit_test/main.cpp
+    unit_test/SiameseTools.cpp
+    unit_test/SiameseTools.h
+    unit_test/getopt.c
+    unit_test/getopt_long.c
+    unit_test/getopt.h
+)
+else()
 set(UNIT_TEST_SOURCE_FILES
     unit_test/main.cpp
     unit_test/SiameseTools.cpp
     unit_test/SiameseTools.h
 )
+endif()
 
 if(MSVC)
 else()
