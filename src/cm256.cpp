@@ -75,6 +75,8 @@
 //-----------------------------------------------------------------------------
 // Initialization
 
+static bool g_cm256_init = false;
+
 extern "C" int cm256_init_(int version)
 {
     if (version != CM256_VERSION)
@@ -194,6 +196,14 @@ extern "C" int cm256_encode(
     cm256_block* originals,      // Array of pointers to original blocks
     void* recoveryBlocks)        // Output recovery blocks end-to-end
 {
+    if (!g_cm256_init)
+    {
+        int ret = cm256_init_(CM256_VERSION);
+        if (0 != ret)
+            return ret;
+        g_cm256_init = true;
+    }
+
     // Validate input:
     if (params.OriginalCount <= 0 ||
         params.RecoveryCount <= 0 ||
@@ -555,6 +565,14 @@ extern "C" int cm256_decode(
     cm256_encoder_params params, // Encoder params
     cm256_block* blocks)         // Array of 'originalCount' blocks as described above
 {
+    if (!g_cm256_init)
+    {
+        int ret = cm256_init_(CM256_VERSION);
+        if (0 != ret)
+            return ret;
+        g_cm256_init = true;
+    }
+
     if (params.OriginalCount <= 0 ||
         params.RecoveryCount <= 0 ||
         params.BlockBytes <= 0)
