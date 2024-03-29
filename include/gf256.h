@@ -53,6 +53,19 @@
 //------------------------------------------------------------------------------
 // Platform/Architecture
 
+#if defined(WEBRTC_ANDROID)
+    #define ANDROID
+    #define HAVE_ANDROID_GETCPUFEATURES
+#endif
+
+#if defined(WEBRTC_IOS)
+    #define IOS
+#endif
+
+#if defined(WEBRTC_HAS_NEON)
+    #define __ARM_NEON
+#endif
+
 #if defined(__ARM_ARCH) || defined(__ARM_NEON) || defined(__ARM_NEON__)
     #if !defined IOS
         #define LINUX_ARM
