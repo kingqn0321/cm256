@@ -26,7 +26,7 @@
     ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
     POSSIBILITY OF SUCH DAMAGE.
 */
-
+#include <stdio.h>
 #include "gf256.h"
 
 #ifdef LINUX_ARM
@@ -46,6 +46,8 @@
     && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
 #define GF256_IS_BIG_ENDIAN
 #endif
+
+// #include "rtc_base/logging.h"
 
 //------------------------------------------------------------------------------
 // Workaround for ARMv7 that doesn't provide vqtbl1_*
@@ -316,9 +318,10 @@ static void gf256_architecture_init()
 
 #if defined(LINUX_ARM)
     // Check for NEON support on other ARM/Linux platforms
-    checkLinuxARMNeonCapabilities(CpuHasNeon);
+    checkLinuxARMNeonCapabilities();
 #endif
-
+    // RTC_LOG(LS_INFO) << "[gf256] CpuHasNeon = " << CpuHasNeon << " CpuHasNeon64 = " << CpuHasNeon64;
+    fprintf(stdout, "[gf256] CpuHasNeon = %d CpuHasNeon64 = %d\n", CpuHasNeon, CpuHasNeon64);
 #endif //GF256_TRY_NEON
 
 #if !defined(GF256_TARGET_MOBILE)
@@ -330,7 +333,13 @@ static void gf256_architecture_init()
 #if defined(GF256_TRY_AVX2)
     _cpuid(cpu_info, 7);
     CpuHasAVX2 = ((cpu_info[1] & CPUID_EBX_AVX2) != 0);
+    // RTC_LOG(LS_INFO) << "[gf256] CpuHasAVX2 = " << CpuHasAVX2;
+    fprintf(stdout, "[gf256] CpuHasAVX2 = %d\n", CpuHasAVX2);
 #endif // GF256_TRY_AVX2
+
+#if defined(_MSC_VER)
+    fprintf(stdout, "[gf256] _MSC_VER = %d\n", _MSC_VER);
+#endif
 
     // When AVX2 and SSSE3 are unavailable, Siamese takes 4x longer to decode
     // and 2.6x longer to encode.  Encoding requires a lot more simple XOR ops
@@ -338,6 +347,8 @@ static void gf256_architecture_init()
     // average loss rates are low, but when needed it requires a lot more
     // GF multiplies requiring table lookups which is slower.
 
+    // RTC_LOG(LS_INFO) << "[gf256] CpuHasSSSE3 = " << CpuHasSSSE3;
+    fprintf(stdout, "[gf256] CpuHasSSSE3 = %d\n", CpuHasSSSE3);
 #endif // GF256_TARGET_MOBILE
 }
 
