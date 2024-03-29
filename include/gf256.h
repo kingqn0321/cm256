@@ -54,7 +54,7 @@
 // Platform/Architecture
 
 #if defined(__ARM_ARCH) || defined(__ARM_NEON) || defined(__ARM_NEON__)
-    #if !defined IOS
+    #if !defined(IOS) && !defined(ANDROID)
         #define LINUX_ARM
     #endif
 #endif
