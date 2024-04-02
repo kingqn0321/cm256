@@ -14,8 +14,12 @@ option(MARCH_NATIVE "Use -march=native option" ON)
 set(LIB_SOURCE_FILES
     src/cm256.cpp
     include/cm256.h
+    src/cauchy_256.cpp
+    include/cauchy_256.h
     src/gf256.cpp
     include/gf256.h
+    src/SiameseTools.cpp
+    include/SiameseTools.h
 )
 
 if(MSVC)

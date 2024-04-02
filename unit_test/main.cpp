@@ -32,6 +32,8 @@
 #endif
 
 #include <iostream>
+#include <fstream>
+#include <vector>
 using namespace std;
 
 #ifdef _MSC_VER
@@ -39,6 +41,7 @@ using namespace std;
 #endif
 
 #include "cm256.h"
+#include "cauchy_256.h"
 #include "SiameseTools.h"
 
 #ifdef _WIN32
@@ -51,6 +54,8 @@ using namespace std;
 
 #include <chrono>
 #include <thread>
+
+#define CAUCHY_256_DECODE_TEST
 
 static int original_count_k_ = 48;
 static int recovery_count_m_ = 96;
@@ -242,7 +247,15 @@ bool FinerPerfTimingTest()
         return false;
     }
 
+#if defined(CAUCHY_256_DECODE_TEST)
+    if (cauchy_256_init())
+    {
+        return false;
+    }
+#endif
+
     cm256_block blocks[256];
+    std::vector<Block> gf_blocks(256);
 
     uint64_t tsum_enc = 0;
     uint64_t tsum_dec = 0;
@@ -302,27 +315,56 @@ bool FinerPerfTimingTest()
             blocks[i].Index = cm256_get_recovery_block_index(params, i); // First recovery block index
         }
         //// Simulate loss of data, substituting a recovery block in its place ////
+#if defined(CAUCHY_256_DECODE_TEST)
+        for (unsigned ii = 0; ii < params.OriginalCount; ++ii)
+        {
+            gf_blocks[ii].data = (unsigned char *)blocks[ii].Block;
+            gf_blocks[ii].row = blocks[ii].Index;
+        }
+#endif
 
         const uint64_t t2 = siamese::GetTimeUsec();
 
+#if defined(CAUCHY_256_DECODE_TEST)
+        const int decodeResult = cauchy_256_decode(
+            params.OriginalCount,
+            params.RecoveryCount,
+            &gf_blocks[0],
+            params.BlockBytes);
+        if (decodeResult != 0)
+        {
+            cout << "Decode failed" << endl;
+            SIAMESE_DEBUG_BREAK();
+            return 1;
+        }
+#else
         if (cm256_decode(params, blocks))
         {
             return false;
         }
+#endif
 
         const uint64_t t3 = siamese::GetTimeUsec();
         tsum_dec += t3 - t2;
 
-        for (int i = 0; i < params.RecoveryCount && i < params.OriginalCount; ++i)
+        for (int i = 0; /*i < params.RecoveryCount &&*/ i < params.OriginalCount; ++i)
         {
-            uint8_t* block = (uint8_t*)blocks[i].Block;
+#if defined(CAUCHY_256_DECODE_TEST)
+            uint8_t *block = (uint8_t *)gf_blocks[i].data;
+            int index = gf_blocks[i].row;
+#else
+            uint8_t *block = (uint8_t *)blocks[i].Block;
             int index = blocks[i].Index;
-
+#endif
             for (int j = 0; j < params.BlockBytes; ++j)
             {
                 const uint8_t expected = (uint8_t)(j + index * params.BlockBytes);
                 if (block[j] != expected)
                 {
+                    cout << "expected: "
+                         << static_cast<int>(expected) << " real: "
+                         << static_cast<int>(block[j]) << " i: " << i << " j: " << j << " index: " << index << " trial: " << trial
+                         << endl;
                     return false;
                 }
             }
