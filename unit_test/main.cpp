@@ -55,7 +55,7 @@ using namespace std;
 #include <chrono>
 #include <thread>
 
-#define CAUCHY_256_DECODE_TEST
+// #define CAUCHY_256_DECODE_TEST
 
 static int original_count_k_ = 48;
 static int recovery_count_m_ = 96;

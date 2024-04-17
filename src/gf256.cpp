@@ -47,8 +47,6 @@
 #define GF256_IS_BIG_ENDIAN
 #endif
 
-// #include "rtc_base/logging.h"
-
 //------------------------------------------------------------------------------
 // Workaround for ARMv7 that doesn't provide vqtbl1_*
 // This comes from linux-raid (https://www.spinics.net/lists/raid/msg58403.html)
@@ -283,6 +281,8 @@ static void checkLinuxARMNeonCapabilities( bool& cpuHasNeon )
             if (auxv.a_type == AT_HWCAP)
             {
                 cpuHasNeon = (auxv.a_un.a_val & 4096) != 0;
+                fprintf(stdout,
+                        "[gf256] linux-arm cpuHasNeon = %d\n", cpuHasNeon);
                 break;
             }
         }
@@ -291,6 +291,7 @@ static void checkLinuxARMNeonCapabilities( bool& cpuHasNeon )
     else
     {
         cpuHasNeon = false;
+        fprintf(stdout, "[gf256] linux-arm cpuHasNeon = %d\n", cpuHasNeon);
     }
 }
 #endif
@@ -305,23 +306,32 @@ static void gf256_architecture_init()
     AndroidCpuFamily family = android_getCpuFamily();
     if (family == ANDROID_CPU_FAMILY_ARM)
     {
+        fprintf(stdout, "[gf256] family-arm\n");
         if (android_getCpuFeatures() & ANDROID_CPU_ARM_FEATURE_NEON)
+        {
             CpuHasNeon = true;
+            fprintf(stdout, "[gf256] family-arm CpuHasNeon = %d\n", CpuHasNeon);
+        }
     }
     else if (family == ANDROID_CPU_FAMILY_ARM64)
     {
         CpuHasNeon = true;
+        fprintf(stdout, "[gf256] family-arm64\n");
         if (android_getCpuFeatures() & ANDROID_CPU_ARM64_FEATURE_ASIMD)
+        {
             CpuHasNeon64 = true;
+            fprintf(stdout, "[gf256] family-arm64 CpuHasNeon = %d\n", CpuHasNeon);
+        }
     }
-#endif
+#else
 
 #if defined(LINUX_ARM)
     // Check for NEON support on other ARM/Linux platforms
-    checkLinuxARMNeonCapabilities();
+    checkLinuxARMNeonCapabilities(CpuHasNeon);
 #endif
-    // RTC_LOG(LS_INFO) << "[gf256] CpuHasNeon = " << CpuHasNeon << " CpuHasNeon64 = " << CpuHasNeon64;
-    fprintf(stdout, "[gf256] CpuHasNeon = %d CpuHasNeon64 = %d\n", CpuHasNeon, CpuHasNeon64);
+
+#endif
+    fprintf(stdout, "[gf256] CpuHasNeon = %d CpuHasNeon64 =%d\n", CpuHasNeon, CpuHasNeon64);
 #endif //GF256_TRY_NEON
 
 #if !defined(GF256_TARGET_MOBILE)
@@ -333,12 +343,11 @@ static void gf256_architecture_init()
 #if defined(GF256_TRY_AVX2)
     _cpuid(cpu_info, 7);
     CpuHasAVX2 = ((cpu_info[1] & CPUID_EBX_AVX2) != 0);
-    // RTC_LOG(LS_INFO) << "[gf256] CpuHasAVX2 = " << CpuHasAVX2;
     fprintf(stdout, "[gf256] CpuHasAVX2 = %d\n", CpuHasAVX2);
 #endif // GF256_TRY_AVX2
 
 #if defined(_MSC_VER)
-    fprintf(stdout, "[gf256] _MSC_VER = %d\n", _MSC_VER);
+    fprintf(stdout, "[gf256] MSC_VER = %d\n", _MSC_VER);
 #endif
 
     // When AVX2 and SSSE3 are unavailable, Siamese takes 4x longer to decode
@@ -347,7 +356,6 @@ static void gf256_architecture_init()
     // average loss rates are low, but when needed it requires a lot more
     // GF multiplies requiring table lookups which is slower.
 
-    // RTC_LOG(LS_INFO) << "[gf256] CpuHasSSSE3 = " << CpuHasSSSE3;
     fprintf(stdout, "[gf256] CpuHasSSSE3 = %d\n", CpuHasSSSE3);
 #endif // GF256_TARGET_MOBILE
 }
@@ -827,6 +835,7 @@ extern "C" void gf256_add_mem(void * GF256_RESTRICT vx,
 
     // Handle final bytes
     const int offset = eight + four;
+    // handle -Wimplicit-fallthrough
     switch (bytes & 3)
     {
     case 3: 
@@ -956,6 +965,7 @@ extern "C" void gf256_add2_mem(void * GF256_RESTRICT vz, const void * GF256_REST
 
     // Handle final bytes
     const int offset = eight + four;
+    // handle -Wimplicit-fallthrough
     switch (bytes & 3)
     {
     case 3: 
@@ -1120,6 +1130,7 @@ extern "C" void gf256_addset_mem(void * GF256_RESTRICT vz, const void * GF256_RE
 
     // Handle final bytes
     const int offset = eight + four;
+    // handle -Wimplicit-fallthrough
     switch (bytes & 3)
     {
     case 3: 
@@ -1293,6 +1304,7 @@ extern "C" void gf256_mul_mem(void * GF256_RESTRICT vz, const void * GF256_RESTR
 
     // Handle single bytes
     const int offset = four;
+    // handle -Wimplicit-fallthrough
     switch (bytes & 3)
     {
     case 3: 
@@ -1531,6 +1543,7 @@ extern "C" void gf256_muladd_mem(void * GF256_RESTRICT vz, uint8_t y,
 
     // Handle single bytes
     const int offset = four;
+    // handle -Wimplicit-fallthrough
     switch (bytes & 3)
     {
     case 3: 
@@ -1613,6 +1626,7 @@ extern "C" void gf256_memswap(void * GF256_RESTRICT vx, void * GF256_RESTRICT vy
     // Handle final bytes
     const int offset = eight + four;
     uint8_t temp;
+    // handle -Wimplicit-fallthrough
     switch (bytes & 3)
     {
     case 3: 
