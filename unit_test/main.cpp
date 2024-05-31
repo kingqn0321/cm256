@@ -56,11 +56,14 @@ using namespace std;
 #include <thread>
 
 // #define CAUCHY_256_DECODE_TEST
+#define SWAP_BLOCK_TEST
 
 static int original_count_k_ = 48;
 static int recovery_count_m_ = 96;
 static int block_bytes_l_ = 1400;
 static int trials_n_ = 1000;
+
+#define MIN(a, b) (((a) < (b)) ? (a) : (b))
 
 void initializeBlocks(cm256_block originals[256], int blockCount, int blockBytes)
 {
@@ -314,6 +317,16 @@ bool FinerPerfTimingTest()
             blocks[i].Block = recoveryData + params.BlockBytes * i; // First recovery block
             blocks[i].Index = cm256_get_recovery_block_index(params, i); // First recovery block index
         }
+#if defined(SWAP_BLOCK_TEST)
+        void *first_block = blocks[0].Block;
+        unsigned char first_index = blocks[0].Index;
+        // swap block test.
+        unsigned char swap_index = MIN(params.RecoveryCount, params.OriginalCount - 1);
+        blocks[0].Block = blocks[swap_index].Block;
+        blocks[0].Index = blocks[swap_index].Index;
+        blocks[swap_index].Block = first_block;
+        blocks[swap_index].Index = first_index;
+#endif
         //// Simulate loss of data, substituting a recovery block in its place ////
 #if defined(CAUCHY_256_DECODE_TEST)
         for (unsigned ii = 0; ii < params.OriginalCount; ++ii)
@@ -355,6 +368,9 @@ bool FinerPerfTimingTest()
 #else
             uint8_t *block = (uint8_t *)blocks[i].Block;
             int index = blocks[i].Index;
+#endif
+#if defined(SWAP_BLOCK_TEST)
+            cout << "  do-check! " << " i: " << i << " index: " << index << " trial: " << trial << endl;
 #endif
             for (int j = 0; j < params.BlockBytes; ++j)
             {
